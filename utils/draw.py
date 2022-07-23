@@ -45,13 +45,14 @@ def drawbndbox(
     if labels is None:
         labels: Union[List[str], List[None]] = [None] * num_boxes  # type: ignore[no-redef]
     elif len(labels) != num_boxes:
-        raise ValueError(
-            f"边界框数 ({num_boxes}) 与标签数不一致 ({len(labels)})，请为每个边界框指定标签"
-        )
+        raise ValueError(f"边界框数 ({num_boxes}) 与标签数不一致 ({len(labels)})，请为每个边界框指定标签")
+
+    unique_label = np.unique(np.array(labels))
+    unique_num = len(unique_label)
 
     if colors is None:
         # 如果颜色未指定，则按续产生颜色
-        colors = _generate_color_palette(num_boxes)
+        colors = _generate_color_palette(unique_num)
     elif isinstance(colors, list):
         if len(colors) < num_boxes:
             raise ValueError(f"Number of colors ({len(colors)}) is less than number of boxes ({num_boxes}). ")
@@ -81,12 +82,14 @@ def drawbndbox(
     else:
         draw = ImageDraw.Draw(img_to_draw)
 
-    for bbox, color, label in zip(img_boxes, colors, labels):  # type: ignore[arg-type]
+    color_dict = {k: v for k, v in zip(unique_label, colors)}
+
+    for bbox, label in zip(img_boxes, labels):  # type: ignore[arg-type]
         if fill:
-            fill_color = color + (100,)
-            draw.rectangle(bbox, width=width, outline=color, fill=fill_color)
+            fill_color = color_dict[label] + (100,)
+            draw.rectangle(bbox, width=width, outline=color_dict[label], fill=fill_color)
         else:
-            draw.rectangle(bbox, width=width, outline=color)
+            draw.rectangle(bbox, width=width, outline=color_dict[label])
 
         if label is not None:
             margin = width + 1
@@ -96,7 +99,7 @@ def drawbndbox(
             box_width = txt_box_size[2] - txt_box_size[0]
             txt_rec_box = [bbox[0], bbox[1] - box_height - 2 * margin, bbox[0] + box_width + 2 * margin,
                            bbox[1]]
-            draw.rectangle(txt_rec_box, fill=color, width=0)
+            draw.rectangle(txt_rec_box, fill=color_dict[label], width=0)
             draw.text((bbox[0] + margin, bbox[1] - margin), label, fill='white', font=txt_font, anchor='lb')
     return torch.from_numpy(np.array(img_to_draw)).permute(2, 0, 1).to(dtype=torch.uint8)
 
