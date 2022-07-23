@@ -11,6 +11,8 @@ import torch.nn as nn
 from torch.nn import Module
 from torchvision.models import resnet50, ResNet50_Weights
 from utils.dataset import VocClassifier
+from torchvision import transforms
+from torch.utils.data import DataLoader
 
 DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
@@ -23,12 +25,19 @@ def resnet(class_num: int) -> Module:
 
 
 def train():
-    img_dir = r"E:\VOC\2012\Train"
-    labeltxt = "../data/classifier_train.txt"
+    train_img_dir = r"E:\VOC\2012\Train"
     test_img_dir = r"E:\VOC\2012\Test"
-    trainset = VocClassifier(img_dir, labeltxt, )
-    net = resnet(20)
-    net.to(DEVICE)
+    train_labeltxt = "../data/classifier_train.txt"
+    test_labeltxt = "../data/classifier_test.txt"
+    data_transforms = {'train': transforms.Compose([
+        transforms.Resize((448, 448)),
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomVerticalFlip(),
+        transforms.RandomAutocontrast(),
+    ]), 'test': transforms.Compose([transforms.Resize((448, 448))])}
+    image_dataset = {'train': VocClassifier(train_img_dir, train_labeltxt, transform=data_transforms['train']),
+                     'test': VocClassifier(test_img_dir, test_labeltxt, transform=data_transforms['test'])}
+    pass
 
 
 if __name__ == "__main__":
