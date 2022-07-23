@@ -94,6 +94,6 @@ if __name__ == "__main__":
     # img_dir = r"E:\VOC\2012\Train"
     # trainset = YOLODataset(img_dir, '../data/train.txt', transform=transform)
     # img, label = trainset[20]
-    # trainset = VocClassifier(r"E:\VOC\2012\Train", '../data/classifier.txt')
+    # trainset = VocClassifier(r"E:\VOC\2012\Train", '../data/classifier_train.txt')
     # image, label = trainset[1]
     pass

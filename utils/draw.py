@@ -11,23 +11,23 @@ def drawbndbox(
         labels: Optional[List[str]] = None,
         colors: Optional[Union[List[Union[str, Tuple[int, int, int]]], str, Tuple[int, int, int]]] = None,
         fill: Optional[bool] = False,
-        width: int = 10,
+        width: int = 3,
         font: Optional[str] = None,
         font_size: Optional[int] = None,
 ) -> torch.Tensor:
     '''
     Args:
-        image:
+        image: Tensor shape(3 or 1,W,H) 输入为RGB或灰度图
         boxes: Tensor shape(N,4) [num_boxes,xmin,ymin,xmax,ymax]
-        labels:
-        colors:
-        fill:
-        width:
-        font:
-        font_size:
+        labels: List[str] 长度与boxes一致
+        colors: str or (R,G,B)
+        fill: 是否填充，默认为False
+        width: 矩形框宽度
+        font: 标签字体
+        font_size: 字体大小
 
     Returns:
-
+        Tensor shape(3,w,h)
     '''
     if not isinstance(image, torch.Tensor):
         raise TypeError(f"输入类型为Tensor, 非{type(image)}")
@@ -46,10 +46,11 @@ def drawbndbox(
         labels: Union[List[str], List[None]] = [None] * num_boxes  # type: ignore[no-redef]
     elif len(labels) != num_boxes:
         raise ValueError(
-            f"Number of boxes ({num_boxes}) and labels ({len(labels)}) mismatch. Please specify labels for each box."
+            f"边界框数 ({num_boxes}) 与标签数不一致 ({len(labels)})，请为每个边界框指定标签"
         )
 
     if colors is None:
+        # 如果颜色未指定，则按续产生颜色
         colors = _generate_color_palette(num_boxes)
     elif isinstance(colors, list):
         if len(colors) < num_boxes:
@@ -68,6 +69,7 @@ def drawbndbox(
 
     # Handle Grayscale images
     if image.size(0) == 1:
+        # 扩张张量
         image = torch.tile(image, (3, 1, 1))
 
     ndarr = image.permute(1, 2, 0).cpu().numpy()
@@ -88,8 +90,14 @@ def drawbndbox(
 
         if label is not None:
             margin = width + 1
-            draw.text((bbox[0] + margin, bbox[1] + margin), label, fill=color, font=txt_font, anchor='ls')
 
+            txt_box_size = txt_font.getbbox(label)
+            box_height = txt_box_size[3] - txt_box_size[1]
+            box_width = txt_box_size[2] - txt_box_size[0]
+            txt_rec_box = [bbox[0], bbox[1] - box_height - 2 * margin, bbox[0] + box_width + 2 * margin,
+                           bbox[1]]
+            draw.rectangle(txt_rec_box, fill=color, width=0)
+            draw.text((bbox[0] + margin, bbox[1] - margin), label, fill='white', font=txt_font, anchor='lb')
     return torch.from_numpy(np.array(img_to_draw)).permute(2, 0, 1).to(dtype=torch.uint8)
 
 
@@ -104,7 +112,7 @@ if __name__ == "__main__":
     img = torch.from_numpy(img)
     bndbox = torch.tensor([[8, 74, 333, 500], [5, 26, 324, 445], [40, 104, 273, 322]])
     labels = ['motorbike', 'person', 'person']
-    box_img = drawbndbox(img, bndbox, labels, 'red', font='../data/msyh.ttc', font_size=12)
+    box_img = drawbndbox(img, bndbox, labels, font='../data/msyh.ttc', font_size=12)
     box_img = box_img.permute([1, 2, 0])
     import matplotlib.pyplot as plt
 

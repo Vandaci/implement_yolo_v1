@@ -24,7 +24,8 @@ def resnet(class_num: int) -> Module:
 
 def train():
     img_dir = r"E:\VOC\2012\Train"
-    labeltxt = "../data/classifier.txt"
+    labeltxt = "../data/classifier_train.txt"
+    test_img_dir = r"E:\VOC\2012\Test"
     trainset = VocClassifier(img_dir, labeltxt, )
     net = resnet(20)
     net.to(DEVICE)

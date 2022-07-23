@@ -64,4 +64,5 @@ def xml2txtforclassifier(xml_path, txt_path):
 
 if __name__ == "__main__":
     # xml2txt(r"E:\VOC\2012\Train_Label", '../data/train.txt')
-    xml2txtforclassifier(r"E:\VOC\2012\Train_Label", '../data/classifier.txt')
+    # xml2txtforclassifier(r"E:\VOC\2012\Train_Label", '../data/classifier_train.txt')
+    xml2txtforclassifier(r"E:\VOC\2012\Test_Label", "../data/classifier_test.txt")
