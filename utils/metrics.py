@@ -16,6 +16,7 @@ def accuracy(pred: Tensor, target: Tensor) -> Tensor:
     true_num = target[pred_ == target]
     true_num = len(true_num)
     acc = true_num / len(target.view(-1, 1))
+    del pred_
     return acc
 
 

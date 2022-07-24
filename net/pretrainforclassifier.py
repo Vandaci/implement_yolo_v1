@@ -57,9 +57,9 @@ def train(num_epochs=20):
     ]), 'test': transforms.Compose([transforms.Resize((448, 448))])}
     image_dataset = {'train': VocClassifier(train_img_dir, train_labeltxt, transform=data_transforms['train']),
                      'test': VocClassifier(test_img_dir, test_labeltxt, transform=data_transforms['test'])}
-    dataloaders = {'train': DataLoader(image_dataset['train'], batch_size=32, shuffle=True, num_workers=2),
-                   'test': DataLoader(image_dataset['test'], batch_size=len(image_dataset['test']), shuffle=False,
-                                      num_workers=2)}
+    dataloaders = {'train': DataLoader(image_dataset['train'], batch_size=64, shuffle=True, num_workers=6),
+                   'test': DataLoader(image_dataset['test'], batch_size=64, shuffle=False,
+                                      num_workers=6)}
     # data_sizes = {x: len(image_dataset[x]) for x in ['train', 'test']}
     # 加载模型
     model = resnet(20)
@@ -70,9 +70,9 @@ def train(num_epochs=20):
     optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
 
-    for epoch in tqdm(range(1, num_epochs + 1), unit='Epoch'):
+    for epoch in range(1, num_epochs + 1):
         since = time.time()
-        print(f"\nEpoc {epoch}/{num_epochs}")
+        print(f"\nEpoch {epoch}/{num_epochs}")
         for phase in ['train', 'test']:
             if phase == 'train':
                 model.train()
@@ -87,8 +87,8 @@ def train(num_epochs=20):
                 with torch.set_grad_enabled(phase == 'train'):
                     outputs = model(inputs)
                     loss = loss_fn(outputs, labels)
-                    acc = float(accuracy(outputs, labels))
-                    # print(f"{phase}: Batch Loss:{loss:.4f} Batch Acc:{acc * 100:.2f}%")
+                    acc = accuracy(outputs, labels)
+                    print(f"{phase}: Batch Loss:{loss:.4f} Batch Acc:{acc * 100:.2f}%")
                     if phase == 'train':
                         loss.backward()
                         optimizer.step()
@@ -102,8 +102,6 @@ def train(num_epochs=20):
             if phase == "test" and epoch_acc > best_acc:
                 best_acc = epoch_acc
                 best_model_weights = copy.deepcopy(model.state_dict())
-        gc.collect()
-        torch.cuda.empty_cache()
     time_elapsed = time.time() - since
     print(f"在{time_elapsed // 60:.0f}m {time_elapsed % 60:.0f}s训练完成")
     print(f"最佳测试精度:{best_acc * 100:.2f}%")
