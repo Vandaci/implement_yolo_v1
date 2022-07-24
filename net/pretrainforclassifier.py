@@ -13,6 +13,7 @@ from torchvision.models import resnet50, ResNet50_Weights
 from utils.dataset import VocClassifier
 from torchvision import transforms
 from torch.utils.data import DataLoader
+from utils.xml2txt import CLASS_NAME
 
 DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
@@ -37,6 +38,10 @@ def train():
     ]), 'test': transforms.Compose([transforms.Resize((448, 448))])}
     image_dataset = {'train': VocClassifier(train_img_dir, train_labeltxt, transform=data_transforms['train']),
                      'test': VocClassifier(test_img_dir, test_labeltxt, transform=data_transforms['test'])}
+    dataloaders = {'train': DataLoader(image_dataset['train'], batch_size=64, shuffle=True, num_workers=6),
+                   'test': DataLoader(image_dataset['test'], batch_size=len(image_dataset['test']), shuffle=False,
+                                      num_workers=6)}
+    data_sizes = {x: len(image_dataset[x]) for x in ['train', 'test']}
     pass
 
 
