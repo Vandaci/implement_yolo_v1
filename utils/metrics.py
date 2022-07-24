@@ -7,11 +7,10 @@ Project  : implement_yolo_v1/metrics.py
 Software : PyCharm
 """
 from torch import Tensor
-import copy
 
 
 def accuracy(pred: Tensor, target: Tensor) -> Tensor:
-    pred_ = copy.deepcopy(pred)
+    pred_ = pred.clone()
     pred_[pred_ >= 0.5] = 1
     pred_[pred_ < 0.5] = 0
     true_num = target[pred_ == target]
