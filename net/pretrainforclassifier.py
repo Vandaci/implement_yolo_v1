@@ -9,7 +9,6 @@ Software : PyCharm
 import numpy as np
 import torch
 import torch.nn as nn
-import torchvision.utils
 from torch.nn import Module
 from torchvision.models import resnet50, ResNet50_Weights
 from utils.dataset import VocClassifier
@@ -18,10 +17,10 @@ from torch.utils.data import DataLoader
 from utils.xml2txt import CLASS_NAME, CLASS_NAME_LIST
 import matplotlib.pyplot as plt
 import copy
-from tqdm import tqdm
-from utils.metrics import accuracy
+# from utils.metrics import accuracy
 import time
-import gc
+from torchmetrics.functional import accuracy
+from torch import sigmoid
 
 CLASS_NAME_LIST = np.array(CLASS_NAME_LIST)
 
@@ -44,7 +43,7 @@ def imshow(inp: torch.Tensor, title=None):
     plt.show()
 
 
-def train(num_epochs=20):
+def train(num_epochs=10):
     train_img_dir = r"E:\VOC\2012\Train"
     test_img_dir = r"E:\VOC\2012\Test"
     train_labeltxt = "../data/classifier_train.txt"
@@ -53,26 +52,27 @@ def train(num_epochs=20):
         transforms.Resize((448, 448)),
         transforms.RandomHorizontalFlip(),
         transforms.RandomVerticalFlip(),
-        transforms.RandomAutocontrast(),
     ]), 'test': transforms.Compose([transforms.Resize((448, 448))])}
     image_dataset = {'train': VocClassifier(train_img_dir, train_labeltxt, transform=data_transforms['train']),
                      'test': VocClassifier(test_img_dir, test_labeltxt, transform=data_transforms['test'])}
     dataloaders = {'train': DataLoader(image_dataset['train'], batch_size=64, shuffle=True, num_workers=6),
-                   'test': DataLoader(image_dataset['test'], batch_size=64, shuffle=False,
+                   'test': DataLoader(image_dataset['test'], batch_size=64, shuffle=True,
                                       num_workers=6)}
     # data_sizes = {x: len(image_dataset[x]) for x in ['train', 'test']}
     # 加载模型
     model = resnet(20)
+    model.load_state_dict(torch.load('../data/best_classifier_weight.pt'))
     model.to(DEVICE)
     best_model_weights = copy.deepcopy(model.state_dict())
-    best_acc = 0.
+    best_acc = 0
     loss_fn = nn.BCEWithLogitsLoss().to(DEVICE)
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
-
+    optimizer = torch.optim.RMSprop(model.parameters(), lr=0.0008)
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.9)
+    since = time.time()
     for epoch in range(1, num_epochs + 1):
-        since = time.time()
-        print(f"\nEpoch {epoch}/{num_epochs}")
+        print('-' * 20)
+        print(f'当前学习率：{lr_scheduler.get_last_lr()}')
+        print(f"Epoch {epoch}/{num_epochs}")
         for phase in ['train', 'test']:
             if phase == 'train':
                 model.train()
@@ -87,13 +87,13 @@ def train(num_epochs=20):
                 with torch.set_grad_enabled(phase == 'train'):
                     outputs = model(inputs)
                     loss = loss_fn(outputs, labels)
-                    acc = accuracy(outputs, labels)
+                    acc = accuracy(sigmoid(outputs), labels.int(), num_classes=20)
                     print(f"{phase}: Batch Loss:{loss:.4f} Batch Acc:{acc * 100:.2f}%")
                     if phase == 'train':
                         loss.backward()
                         optimizer.step()
                 running_loss += float(loss)
-                running_acc += acc
+                running_acc += float(acc)
             if phase == 'train':
                 lr_scheduler.step()
             epoch_loss = running_loss / len(dataloaders[phase])
@@ -104,7 +104,7 @@ def train(num_epochs=20):
                 best_model_weights = copy.deepcopy(model.state_dict())
     time_elapsed = time.time() - since
     print(f"在{time_elapsed // 60:.0f}m {time_elapsed % 60:.0f}s训练完成")
-    print(f"最佳测试精度:{best_acc * 100:.2f}%")
+    print(f"最佳测试损失:{best_acc * 100:.2f}%")
     model.load_state_dict(best_model_weights)
     torch.save(model.state_dict(), '../data/best_classifier_weight.pt')
     pass

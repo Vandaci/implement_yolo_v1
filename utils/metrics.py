@@ -13,8 +13,7 @@ def accuracy(pred: Tensor, target: Tensor) -> Tensor:
     pred_ = pred.clone()
     pred_[pred_ >= 0.5] = 1
     pred_[pred_ < 0.5] = 0
-    true_num = target[pred_ == target]
-    true_num = len(true_num)
+    true_num = len(target[pred_ == target])
     acc = true_num / len(target.view(-1, 1))
     del pred_
     return acc
